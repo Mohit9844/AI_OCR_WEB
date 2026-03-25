@@ -12,7 +12,6 @@ app = Flask(__name__)
 
 UPLOAD_FOLDER = "uploads"
 OUTPUT_FOLDER = "outputs"
-POPPLER_PATH = r"D:\poppler\Library\bin"
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
@@ -30,7 +29,7 @@ def normalize(text):
 
 
 def process_pdf(input_path, output_path, find_text, replace_text):
-    pages = convert_from_path(input_path, dpi=300, poppler_path=POPPLER_PATH)
+    pages = convert_from_path(input_path, dpi=300)
     c = canvas.Canvas(output_path)
 
     for page in pages:
@@ -128,4 +127,5 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
