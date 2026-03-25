@@ -1,0 +1,6 @@
+easyocr
+opencv-python
+pillow
+numpy
+pdf2image
+reportlab
