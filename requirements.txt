@@ -5,3 +5,5 @@ numpy==1.24.4
 pdf2image
 reportlab
 gunicorn
+setuptools
+wheel
