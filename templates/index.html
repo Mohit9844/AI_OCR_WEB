@@ -1,27 +1,239 @@
 <!DOCTYPE html>
-
 <html>
 <head>
-    <title>PDF Replace Tool</title>
+    <title>AI OCR PDF Replace</title>
+
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+
+    .container {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        width: 420px;
+        text-align: center;
+    }
+
+    h2 {
+        margin-bottom: 10px;
+    }
+
+    .drop-zone {
+        border: 2px dashed #aaa;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 15px 0;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .drop-zone.dragover {
+        border-color: #007bff;
+        background: #f0f8ff;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+
+    .file-list {
+        text-align: left;
+        font-size: 13px;
+        margin-top: 10px;
+        max-height: 100px;
+        overflow-y: auto;
+    }
+
+    input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+    }
+
+    button {
+        width: 100%;
+        margin-top: 15px;
+        padding: 12px;
+        border: none;
+        background: #007bff;
+        color: white;
+        font-size: 16px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #0056b3;
+    }
+
+    .loader {
+        display: none;
+        margin-top: 15px;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: auto;
+    }
+
+    @keyframes spin {
+        100% { transform: rotate(360deg); }
+    }
+
+    .note {
+        font-size: 12px;
+        color: gray;
+        margin-top: 10px;
+    }
+
+    .divider {
+        margin: 15px 0;
+        font-size: 12px;
+        color: #999;
+    }
+
+    .message {
+        margin-top: 10px;
+        font-size: 13px;
+    }
+</style>
+
 </head>
+
 <body>
 
-<h2>PDF Text Replace (AI OCR)</h2>
+<div class="container">
 
-<form method="post" enctype="multipart/form-data">
+<h2>🚀 AI OCR Tool</h2>
+<p style="color:gray;">Replace text inside PDF (AI based)</p>
 
-<label>Select PDF Files:</label><br>
-<input type="file" name="files" multiple required><br><br>
+<form onsubmit="handleSubmit(event)" enctype="multipart/form-data">
 
-<label>Find Text:</label><br>
-<input type="text" name="find_text" required><br><br>
+    <!-- Upload -->
+    <div class="drop-zone" onclick="fileInput.click()" id="dropZone">
+        📂 Drag & Drop PDF here <br> or Click to Upload
+    </div>
 
-<label>Replace Text:</label><br>
-<input type="text" name="replace_text" required><br><br>
+    <input type="file" name="files" id="fileInput" multiple>
+    <div class="file-list" id="fileList"></div>
 
-<button type="submit">Upload & Process</button>
+    <div class="divider">──── OR PROCESS FOLDER ────</div>
+
+    <!-- Folder -->
+    <input type="text" name="input_folder" placeholder="📂 Input Folder Path">
+    <input type="text" name="output_folder" placeholder="📁 Output Folder Path">
+
+    <!-- NEW: Allowed Prefix -->
+    <input type="text" name="allowed_prefix" placeholder="📌 Allowed Prefix (cam,tvr,fi)">
+
+    <!-- Replace -->
+    <input type="text" name="find_text" placeholder="🔍 Find Text" required>
+    <input type="text" name="replace_text" placeholder="✏️ Replace Text" required>
+
+    <button type="submit">⚡ Process Files</button>
+
+    <div class="loader" id="loader">
+        <div class="spinner"></div>
+        <p>Processing... please wait</p>
+    </div>
 
 </form>
+
+<div class="message" id="message"></div>
+
+<div class="note">✔ Upload multiple PDFs OR use folder path</div>
+
+</div>
+
+<script>
+const dropZone = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
+const fileList = document.getElementById("fileList");
+
+// Drag events
+dropZone.addEventListener("dragover", e => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+});
+
+dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("dragover");
+});
+
+dropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+
+    fileInput.files = e.dataTransfer.files;
+    showFiles(fileInput.files);
+});
+
+fileInput.addEventListener("change", () => {
+    showFiles(fileInput.files);
+});
+
+function showFiles(files) {
+    fileList.innerHTML = "";
+    Array.from(files).forEach(file => {
+        fileList.innerHTML += "📄 " + file.name + "<br>";
+    });
+}
+
+// 🚀 MAIN SUBMIT
+async function handleSubmit(e) {
+    e.preventDefault();
+
+    document.getElementById("loader").style.display = "block";
+    document.getElementById("message").innerHTML = "";
+
+    let formData = new FormData(e.target);
+
+    try {
+        let res = await fetch("/", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!res.ok) {
+            let err = await res.json();
+            throw new Error(err.error);
+        }
+
+        let blob = await res.blob();
+
+        let url = window.URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = "result.zip";
+        a.click();
+
+        document.getElementById("message").innerHTML =
+            "✅ Processing completed successfully";
+
+    } catch (err) {
+        document.getElementById("message").innerHTML =
+            "❌ Error: " + err.message;
+    }
+
+    document.getElementById("loader").style.display = "none";
+}
+</script>
 
 </body>
 </html>
